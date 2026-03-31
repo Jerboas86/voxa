@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/voxa/voxa.sample.schema.json",
+  "title": "Voxa Sample Metadata",
+  "description": "Schema for a Voxa sample metadata file such as samples/metadata/<locale>-<version>/<shard>/<sample-id>.<sample-revision>.json.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "sample_id",
+    "sample_revision",
+    "corpus_id",
+    "corpus_version",
+    "audio",
+    "text",
+    "language",
+    "metrics",
+    "integrity"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "sample_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sample_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "corpus_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "corpus_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "subset": {
+      "type": "string",
+      "enum": [
+        "core",
+        "extended",
+        "other"
+      ]
+    },
+    "audio": {
+      "$ref": "#/$defs/audio"
+    },
+    "text": {
+      "$ref": "#/$defs/text"
+    },
+    "language": {
+      "$ref": "#/$defs/language"
+    },
+    "tts": {
+      "$ref": "#/$defs/tts"
+    },
+    "metrics": {
+      "$ref": "#/$defs/metrics"
+    },
+    "integrity": {
+      "$ref": "#/$defs/integrity"
+    },
+    "annotations": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "audioContainer": {
+      "type": "string",
+      "enum": [
+        "wav",
+        "flac",
+        "mp3",
+        "ogg",
+        "opus"
+      ]
+    },
+    "language": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "bcp47"
+      ],
+      "properties": {
+        "bcp47": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "audio": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "path",
+        "container",
+        "sample_rate_hz",
+        "channels",
+        "duration_s",
+        "file_size_bytes"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/).+"
+        },
+        "container": {
+          "$ref": "#/$defs/audioContainer"
+        },
+        "sample_rate_hz": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "channels": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "duration_s": {
+          "type": "number",
+          "minimum": 0
+        },
+        "file_size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "text": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "content"
+      ],
+      "properties": {
+        "content": {
+          "type": "string",
+          "minLength": 1
+        },
+        "normalized": {
+          "type": "string"
+        },
+        "transcript_id": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        }
+      }
+    },
+    "tts": {
+      "type": "object",
+      "description": "Optional. If the sample is TTS-generated, this object must be present.",
+      "additionalProperties": true,
+      "required": [
+        "provider",
+        "model_name",
+        "model_version",
+        "voice_name",
+        "voice_id",
+        "generated_at"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "voice_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "voice_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generation_parameters": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "generated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "rms_dbfs",
+        "integrated_lufs",
+        "peak_dbfs"
+      ],
+      "properties": {
+        "rms_dbfs": {
+          "type": "number"
+        },
+        "integrated_lufs": {
+          "type": "number"
+        },
+        "active_speech_rms_dbfs": {
+          "type": "number"
+        },
+        "peak_dbfs": {
+          "type": "number"
+        },
+        "crest_factor_db": {
+          "type": "number"
+        },
+        "speech_activity_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "loudness_range_lu": {
+          "type": "number"
+        }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "hash_algorithm",
+        "audio_hash"
+      ],
+      "properties": {
+        "hash_algorithm": {
+          "type": "string",
+          "enum": [
+            "sha256",
+            "sha512"
+          ]
+        },
+        "audio_hash": {
+          "type": "string",
+          "minLength": 1
+        },
+        "metadata_hash": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
