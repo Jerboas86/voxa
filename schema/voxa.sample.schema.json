@@ -54,8 +54,8 @@
     "language": {
       "$ref": "#/$defs/language"
     },
-    "tts": {
-      "$ref": "#/$defs/tts"
+    "voice": {
+      "$ref": "#/$defs/voice"
     },
     "metrics": {
       "$ref": "#/$defs/metrics"
@@ -159,19 +159,22 @@
         }
       }
     },
-    "tts": {
+    "voice": {
       "type": "object",
-      "description": "Optional. If the sample is TTS-generated, this object must be present.",
+      "description": "Optional. If the sample is TTS-generated, this object must be present and kind must be tts.",
       "additionalProperties": true,
       "required": [
-        "provider",
-        "model_name",
-        "model_version",
-        "voice_name",
-        "voice_id",
-        "generated_at"
+        "kind",
+        "voice_id"
       ],
       "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "human",
+            "tts"
+          ]
+        },
         "provider": {
           "type": "string",
           "minLength": 1
@@ -200,7 +203,30 @@
           "type": "string",
           "format": "date-time"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "tts"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "provider",
+              "model_name",
+              "model_version",
+              "voice_name",
+              "generated_at"
+            ]
+          }
+        }
+      ]
     },
     "ltasInline": {
       "type": "object",
