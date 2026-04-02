@@ -1,4 +1,4 @@
-# voxa
+# Voxa
 
 Voxa is a specification for a versioned, traceable, verifiable speech corpus
 format with:
