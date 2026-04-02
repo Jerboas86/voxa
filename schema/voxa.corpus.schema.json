@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.org/voxa/voxa.corpus.schema.json",
   "title": "Voxa Corpus Manifest",
-  "description": "Schema for the Voxa corpus-level manifest file voxa.corpus.json.",
+  "description": "Schema for the Voxa corpus-level manifest file voxa.corpus.json. Cross-file validation must additionally ensure that every referenced sample metadata record uses the same exact language.bcp47 value as the corpus manifest.",
   "type": "object",
   "additionalProperties": true,
   "required": [
@@ -12,7 +12,7 @@
     "version",
     "created_at",
     "status",
-    "license",
+    "licenses",
     "language",
     "release_root",
     "proxy_signals",
@@ -59,8 +59,8 @@
       "type": "string",
       "minLength": 1
     },
-    "license": {
-      "$ref": "#/$defs/license"
+    "licenses": {
+      "$ref": "#/$defs/licenses"
     },
     "citation": {
       "$ref": "#/$defs/citation"
@@ -215,7 +215,8 @@
       "additionalProperties": true,
       "required": [
         "name",
-        "url"
+        "url",
+        "usage"
       ],
       "properties": {
         "name": {
@@ -225,7 +226,18 @@
         "url": {
           "type": "string",
           "format": "uri"
+        },
+        "usage": {
+          "type": "string",
+          "minLength": 1
         }
+      }
+    },
+    "licenses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/license"
       }
     },
     "citation": {
@@ -257,15 +269,10 @@
       "type": "object",
       "additionalProperties": true,
       "required": [
-        "implementation",
         "version",
         "parameters"
       ],
       "properties": {
-        "implementation": {
-          "type": "string",
-          "minLength": 1
-        },
         "version": {
           "type": "string",
           "minLength": 1
@@ -312,12 +319,18 @@
         }
       }
     },
-    "ltass": {
+    "ltasInline": {
       "type": "object",
       "additionalProperties": true,
       "required": [
         "method",
-        "band_hz",
+        "analysis_sample_rate_hz",
+        "frame_ms",
+        "hop_ms",
+        "window",
+        "n_fft",
+        "level_definition",
+        "frequency_hz",
         "level_db"
       ],
       "properties": {
@@ -325,19 +338,161 @@
           "type": "string",
           "minLength": 1
         },
-        "band_hz": {
+        "analysis_sample_rate_hz": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "frame_ms": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "hop_ms": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "window": {
+          "type": "string",
+          "minLength": 1
+        },
+        "n_fft": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "level_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resample_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "frequency_hz": {
           "type": "array",
+          "minItems": 1,
           "items": {
             "type": "number"
           }
         },
         "level_db": {
           "type": "array",
+          "minItems": 1,
           "items": {
             "type": "number"
           }
         }
       }
+    },
+    "ltasReference": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "method",
+        "analysis_sample_rate_hz",
+        "frame_ms",
+        "hop_ms",
+        "window",
+        "n_fft",
+        "level_definition",
+        "path",
+        "format"
+      ],
+      "properties": {
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "analysis_sample_rate_hz": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "frame_ms": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "hop_ms": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "window": {
+          "type": "string",
+          "minLength": 1
+        },
+        "n_fft": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "level_definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resample_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^(?!/).+"
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "json",
+            "csv"
+          ]
+        },
+        "hash_algorithm": {
+          "type": "string",
+          "enum": [
+            "sha256",
+            "sha512"
+          ]
+        },
+        "hash": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bin_count": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "hash_algorithm"
+            ]
+          },
+          "then": {
+            "required": [
+              "hash"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "hash"
+            ]
+          },
+          "then": {
+            "required": [
+              "hash_algorithm"
+            ]
+          }
+        }
+      ]
+    },
+    "ltas": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/ltasInline"
+        },
+        {
+          "$ref": "#/$defs/ltasReference"
+        }
+      ]
     },
     "corpusStatistics": {
       "type": "object",
@@ -378,8 +533,8 @@
         "loudness_range_lu": {
           "$ref": "#/$defs/summaryStatistic"
         },
-        "ltass": {
-          "$ref": "#/$defs/ltass"
+        "ltas": {
+          "$ref": "#/$defs/ltas"
         }
       }
     },
