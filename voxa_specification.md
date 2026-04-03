@@ -157,12 +157,12 @@ The recommended project structure is:
 │       │   └── ...
 │       ├── audio/
 │       │   ├── <shard>/
-│       │   │   ├── aud_<audio-hash>.wav
+│       │   │   ├── aud_<bcp47>_<audio-hash>.wav
 │       │   │   └── ...
 │       │   └── ...
 │       └── metrics/
 │           ├── <shard>/
-│           │   ├── ltas_<hash>.json
+│           │   ├── ltas_<bcp47>_<hash>.json
 │           │   └── ...
 │           └── ...
 └── repo/
@@ -445,7 +445,11 @@ Each sample MUST have one metadata file.
 ## File name
 The recommended metadata layout is `<bcp47>/samples/metadata/<version>/<shard>/<sample-id>.<sample-revision>.json`.
 
-The referenced audio file SHOULD be stored under a dataset-root-relative path such as `<bcp47>/samples/audio/<shard>/aud_<audio-hash>.wav`.
+The referenced audio file SHOULD be stored under a dataset-root-relative path such as `<bcp47>/samples/audio/<shard>/aud_<bcp47>_<audio-hash>.wav`.
+
+For hash-addressed sample assets, the file name SHOULD embed the exact `language.bcp47` value so implementations can reconstruct the full asset path from the file name plus the fixed asset-kind path template.
+
+For these hash-addressed sample assets, `<shard>` SHOULD be derived from the first two hexadecimal characters of the content hash.
 
 ## Required fields
 A sample metadata object MUST contain at least:
@@ -480,7 +484,7 @@ If present, `subset` MUST use one of: `core`, `extended`, `other`.
   "corpus_version": "string",
   "subset": "core | extended | other",
   "audio": {
-    "path": "<bcp47>/samples/audio/<shard>/aud_<audio-hash>.wav",
+    "path": "<bcp47>/samples/audio/<shard>/aud_<bcp47>_<audio-hash>.wav",
     "container": "wav | flac | mp3 | ogg | opus",
     "sample_rate_hz": 24000,
     "channels": 1,
@@ -893,7 +897,7 @@ Recommended external-reference structure:
   "vad_hop_ms": 10.0,
   "vad_threshold_dbfs": -40.0,
   "level_definition": "power_db_relative",
-  "path": "samples/metrics/60/ltas_60a8a0d6.json",
+  "path": "samples/metrics/60/ltas_en-US_60a8a0d6.json",
   "format": "json",
   "hash_algorithm": "sha256",
   "hash": "7a42f1c9...",
@@ -1165,7 +1169,7 @@ A recommended release SHOULD include:
   "corpus_version": "v1.0",
   "subset": "core",
   "audio": {
-    "path": "en-US/samples/audio/60/aud_60a8a0d6.wav",
+    "path": "en-US/samples/audio/60/aud_en-US_60a8a0d6.wav",
     "container": "wav",
     "sample_rate_hz": 24000,
     "channels": 1,
@@ -1212,7 +1216,7 @@ A recommended release SHOULD include:
       "vad_hop_ms": 10.0,
       "vad_threshold_dbfs": -40.0,
       "level_definition": "power_db_relative",
-      "path": "samples/metrics/60/ltas_60a8a0d6.json",
+      "path": "samples/metrics/60/ltas_en-US_60a8a0d6.json",
       "format": "json",
       "hash_algorithm": "sha256",
       "hash": "7a42f1c9...",
