@@ -1,6 +1,6 @@
 ---
 title: "Voxa Specification"
-subtitle: "Technical Specification (Draft) v0.1"
+subtitle: "Technical Specification (Draft) v0.1.0"
 author: "Benoit Delemps / Astrone"
 date: "March 2026"
 subject: "Specification Document"
