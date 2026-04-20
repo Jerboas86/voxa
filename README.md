@@ -17,4 +17,10 @@ https://creativecommons.org/licenses/by-sa/4.0/
 
 ## Generate documentation
 
-`pandoc ./voxa_specification.md -o ./spec.pdf   --template eisvogel   --toc --number-sections --pdf-engine=xelatex`
+```sh
+pandoc ./voxa_specification.md -o ./spec.pdf --template eisvogel --toc --number-sections --pdf-engine=xelatex
+```
+
+The GitHub release workflow builds the same PDF with a digest-pinned
+`pandoc/extra` Docker image, which includes the Eisvogel template and the
+LaTeX dependencies needed for the build.

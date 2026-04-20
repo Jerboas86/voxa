@@ -1,0 +1,97 @@
+name: Release specification PDF
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to release, for example v0.1.0. Leave empty only when running from a tag ref."
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-specification-${{ github.event.inputs.tag || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-pdf:
+    name: Build and publish PDF
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Resolve release tag
+        id: release
+        shell: bash
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          tag="${INPUT_TAG}"
+          if [ -z "$tag" ] && [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            tag="${GITHUB_REF_NAME}"
+          fi
+
+          if [ -z "$tag" ]; then
+            echo "This release workflow must run from a tag ref or receive an existing tag input." >&2
+            exit 1
+          fi
+
+          pdf_name="voxa-specification-${tag}.pdf"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "pdf_name=${pdf_name}" >> "$GITHUB_OUTPUT"
+
+      - name: Build specification PDF
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          docker run --rm \
+            --volume "$PWD:/data" \
+            --user "$(id -u):$(id -g)" \
+            pandoc/extra@sha256:07f33f3c77fdde0eede08e2e145de82a048f35ff3e642546cb6e85da9b414498 \
+              voxa_specification.md \
+              -o "${{ steps.release.outputs.pdf_name }}" \
+              --template eisvogel \
+              --toc \
+              --number-sections \
+              --pdf-engine=xelatex
+
+          sha256sum "${{ steps.release.outputs.pdf_name }}" > "${{ steps.release.outputs.pdf_name }}.sha256"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: voxa-specification-${{ steps.release.outputs.tag }}
+          path: |
+            ${{ steps.release.outputs.pdf_name }}
+            ${{ steps.release.outputs.pdf_name }}.sha256
+          if-no-files-found: error
+
+      - name: Publish GitHub release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          PDF_NAME: ${{ steps.release.outputs.pdf_name }}
+        run: |
+          set -euo pipefail
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$PDF_NAME" "$PDF_NAME.sha256" --clobber
+          else
+            gh release create "$RELEASE_TAG" "$PDF_NAME" "$PDF_NAME.sha256" \
+              --title "Voxa Specification ${RELEASE_TAG}" \
+              --notes "PDF release artifact generated from ${GITHUB_SHA}." \
+              --verify-tag
+          fi
