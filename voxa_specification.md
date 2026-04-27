@@ -275,7 +275,6 @@ A dataset manifest MUST contain at least the following fields:
 - `release_root`
 - `corpora`
 - `calibration_profile`
-- `level_policy`
 - `proxy_signals`
 - `integrity`
 
@@ -313,11 +312,6 @@ A dataset manifest MUST contain at least the following fields:
     "reference_scope": "dataset",
     "analysis_tolerance_db": 0.1,
     "parameters": {}
-  },
-  "level_policy": {
-    "mode": "preserve_corpus_levels",
-    "normalization": "not_applied",
-    "offset_definition": "reference_offset_db = corpus.overall_rms_dbfs - calibration_profile.target_rms_dbfs"
   },
   "proxy_signals": [
     {
@@ -380,14 +374,9 @@ The `reference_scope` value MUST be `dataset`.
 
 The calibration profile defines a stable reference level. It MUST NOT be interpreted as requiring sample-level or corpus-level audio normalization.
 
-## Level policy
-`level_policy` describes how corpus audio levels relate to the dataset reference level.
+Dataset-level calibration does not imply normalization. Referenced corpora retain their published audio levels.
 
-For `mode = preserve_corpus_levels`, publishers MUST NOT reprocess existing corpus audio solely to match the dataset reference level.
-
-For `mode = preserve_corpus_levels`, consumers SHOULD account for each corpus reference offset when they need playback levels to be interpreted relative to the dataset reference.
-
-For `mode = preserve_corpus_levels`, `normalization` MUST be `not_applied`.
+Consumers SHOULD account for each corpus `reference_offset_db` when they need playback levels to be interpreted relative to the dataset reference.
 
 ## Dataset proxy signals
 `proxy_signals` MUST describe the derived dataset-level proxy audio assets published with the dataset release.
@@ -435,7 +424,6 @@ The following dataset fields are dynamic, derived, or version-scoped and MUST NO
 - `release_root`
 - `corpora`
 - `calibration_profile`
-- `level_policy`
 - `proxy_signals`
 - `integrity`
 
@@ -1132,7 +1120,7 @@ The dataset manifest MUST publish the proxy signal in `proxy_signals` with its t
 
 A monolingual corpus MAY publish a corpus-level white-noise proxy as a convenience artifact. If present, the corpus-level proxy signal SHOULD match the corpus `overall_rms_dbfs`; it MUST NOT replace the dataset-level proxy signal required by a multilingual dataset release.
 
-Dataset-level calibration does not imply dataset-level audio normalization. When a dataset uses `level_policy.mode = preserve_corpus_levels`, each corpus retains its published audio level and consumers SHOULD use the corpus `reference_offset_db` to interpret that corpus relative to the shared dataset reference.
+Dataset-level calibration does not imply dataset-level audio normalization. Each corpus retains its published audio level and consumers SHOULD use the corpus `reference_offset_db` to interpret that corpus relative to the shared dataset reference.
 
 For reproducibility, the proxy synthesis process SHOULD use a fixed documented audio format and a fixed documented random seed. If those inputs are unchanged and the referenced dataset or corpus state is unchanged, implementations SHOULD reproduce identical proxy bytes.
 
@@ -1278,7 +1266,6 @@ A minimal conforming released multilingual Voxa dataset MUST additionally includ
 - at least two corpus references
 - dataset-level manifest hash
 - one dataset-level calibration profile with `reference_scope = dataset`
-- one level policy with `mode = preserve_corpus_levels`
 - at least one dataset-level proxy signal entry
 - one dataset-level proxy audio file per dataset proxy signal entry
 - one white-noise proxy signal matched to `calibration_profile.target_rms_dbfs`

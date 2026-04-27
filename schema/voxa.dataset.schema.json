@@ -15,7 +15,6 @@
     "release_root",
     "corpora",
     "calibration_profile",
-    "level_policy",
     "proxy_signals",
     "integrity"
   ],
@@ -69,9 +68,6 @@
     },
     "calibration_profile": {
       "$ref": "#/$defs/calibrationProfile"
-    },
-    "level_policy": {
-      "$ref": "#/$defs/levelPolicy"
     },
     "proxy_signals": {
       "type": "array",
@@ -136,40 +132,6 @@
               "kind",
               "target_metric"
             ]
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "level_policy": {
-            "type": "object",
-            "properties": {
-              "mode": {
-                "const": "preserve_corpus_levels"
-              }
-            },
-            "required": [
-              "mode"
-            ]
-          }
-        },
-        "required": [
-          "level_policy"
-        ]
-      },
-      "then": {
-        "properties": {
-          "level_policy": {
-            "required": [
-              "normalization"
-            ],
-            "properties": {
-              "normalization": {
-                "const": "not_applied"
-              }
-            }
           }
         }
       }
@@ -272,33 +234,6 @@
         "parameters": {
           "type": "object",
           "additionalProperties": true
-        }
-      }
-    },
-    "levelPolicy": {
-      "type": "object",
-      "additionalProperties": true,
-      "required": [
-        "mode",
-        "normalization",
-        "offset_definition"
-      ],
-      "properties": {
-        "mode": {
-          "type": "string",
-          "enum": [
-            "preserve_corpus_levels"
-          ]
-        },
-        "normalization": {
-          "type": "string",
-          "enum": [
-            "not_applied"
-          ]
-        },
-        "offset_definition": {
-          "type": "string",
-          "minLength": 1
         }
       }
     },
