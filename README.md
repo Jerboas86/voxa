@@ -3,10 +3,14 @@
 Voxa is a specification for a versioned, traceable, verifiable speech corpus
 format with:
 
+- a dataset-level manifest for multilingual composition and shared calibration
 - a corpus-level manifest
 - sample-level metadata
 - integrity and signature fields
 - reproducible acoustic metrics for validation and comparison
+
+JSON Schemas are provided under `schema/` for dataset, corpus, and sample
+metadata files.
 
 
 ## License

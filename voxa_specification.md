@@ -15,8 +15,9 @@ titlepage-rule-height: 2
 
 # Scope
 
-This specification defines the Voxa format, a structured, human-inspectable, machine-readable format for a versioned and traceable speech corpus. It covers:
+This specification defines the Voxa format, a structured, human-inspectable, machine-readable format for a versioned and traceable speech corpus or dataset. It covers:
 
+- dataset-level schema
 - corpus-level schema
 - sample-level schema
 - integrity and signature protocol
@@ -35,6 +36,11 @@ This specification is intentionally independent from audiometric calibration sta
 This specification is intended for corpus creators, distributors, and consumers in speech synthesis and speech processing systems.
 
 # Terminology
+
+## Dataset
+A dataset is a set of published Voxa corpora observed under one dataset root.
+
+A dataset MAY contain multiple languages by publishing multiple corpora, one language per corpus.
 
 ## Corpus
 A named, versioned collection of speech samples published as a single release.
@@ -57,7 +63,7 @@ The tuple `(sample_id, sample_revision)` identifies one immutable published samp
 A published audio binary that MAY be referenced by multiple sample revisions across corpus versions.
 
 ## Manifest
-The canonical machine-readable, human-inspectable description of a corpus release.
+The canonical machine-readable, human-inspectable description of a dataset release or corpus release.
 
 ## Signature
 A cryptographic proof attached to a manifest to verify authenticity.
@@ -83,11 +89,6 @@ Fields that are expected to change across publications without changing logical 
 ## Derived fields
 Fields computed from other published data or from analysis pipelines, such as metrics, hashes, signatures, and aggregate statistics.
 
-## Dataset
-A dataset is a set of published Voxa corpora observed under one dataset root.
-
-A dataset MAY contain multiple languages by publishing multiple corpora, one language per corpus.
-
 ---
 
 # Design principles
@@ -105,13 +106,13 @@ Every sample MUST document its voice provenance. Synthetic voices MUST document 
 Every corpus release SHOULD publish the same core metric set.
 
 ## Separation of levels
-Corpus-level metadata and sample-level metadata MUST be explicitly separated.
+Dataset-level metadata, corpus-level metadata, and sample-level metadata MUST be explicitly separated.
 
 ## Extensibility
 Implementations MAY add non-conflicting extension fields.
 
 ## Deterministic identity
-Implementations MUST define corpus and sample identity from a canonical metadata view rather than from storage paths or incidental runtime state.
+Implementations MUST define dataset, corpus, and sample identity from a canonical metadata view rather than from storage paths or incidental runtime state.
 
 ## Canonical identity comparison
 Identity MUST be evaluated by constructing a canonical identity view of the object, removing excluded fields defined by this specification, and comparing the remaining metadata exactly.
@@ -133,6 +134,20 @@ The recommended project structure is:
 
 ```text
 <project-root>/
+├── dataset/
+│   ├── manifests/
+│   │   ├── <version>/
+│   │   │   ├── voxa.dataset.json
+│   │   │   ├── checksums.txt
+│   │   │   ├── manifest.sig
+│   │   │   ├── LICENSE
+│   │   │   └── README.md
+│   │   └── ...
+│   └── proxies/
+│       ├── <version>/
+│       │   ├── proxy_<proxy-id>.wav
+│       │   └── ...
+│       └── ...
 ├── <bcp47>/
 │   ├── manifests/
 │   │   ├── <version>/
@@ -141,11 +156,6 @@ The recommended project structure is:
 │   │   │   ├── manifest.sig
 │   │   │   ├── LICENSE
 │   │   │   └── README.md
-│   │   └── ...
-│   ├── proxies/
-│   │   ├── <version>/
-│   │   │   ├── proxy_<proxy-id>.wav
-│   │   │   └── ...
 │   │   └── ...
 │   └── samples/
 │       ├── metadata/
@@ -181,6 +191,10 @@ Example:
 
 All paths stored in Voxa manifests and sample metadata MUST be relative to the dataset root.
 
+The dataset manifest SHOULD be stored under `dataset/manifests/<version>/voxa.dataset.json`.
+
+Dataset-level calibration proxy assets SHOULD be stored under `dataset/proxies/<version>/`.
+
 ## Required files
 A conforming corpus version manifest MUST contain:
 
@@ -191,15 +205,24 @@ A corpus manifest with `status = released` MUST additionally contain:
 
 - `manifest.sig`
 
+A multilingual dataset release MUST contain:
+
+- `voxa.dataset.json`
+- integrity material sufficient to verify the dataset manifest
+- one dataset-level proxy audio file per dataset proxy signal entry
+
+A dataset manifest with `status = released` MUST additionally contain:
+
+- `manifest.sig`
+
 A conforming dataset publication MUST make available:
 
 - one metadata file per manifest sample entry
 - one audio file per manifest sample entry
-- one proxy audio file per manifest proxy signal entry
 
 Metadata and audio files MAY be stored in separate dataset-root-relative directories.
 
-Within a dataset root, multilingual publication SHOULD be modeled as multiple corpora rather than as one multilingual corpus.
+Within a dataset root, multilingual publication SHOULD be modeled as one dataset manifest referencing multiple monolingual corpora rather than as one multilingual corpus.
 
 ## Incremental publication model
 Voxa releases SHOULD evolve incrementally.
@@ -207,7 +230,8 @@ Voxa releases SHOULD evolve incrementally.
 An implementation SHOULD publish:
 
 - immutable manifests for each corpus version under `<bcp47>/manifests/`
-- release-scoped proxy assets under `<bcp47>/proxies/`
+- immutable dataset manifests under `dataset/manifests/` when multiple corpora are published together
+- dataset-scoped proxy assets under `dataset/proxies/`
 - versioned metadata under `<bcp47>/samples/metadata/`
 - published audio assets under `<bcp47>/samples/audio/`
 
@@ -232,6 +256,187 @@ A release MAY contain:
 
 ---
 
+# Dataset-level schema
+
+The dataset-level file is the canonical release manifest for a set of corpus releases that are intended to be used together.
+
+## File name
+The canonical file name MUST be `voxa.dataset.json`.
+
+## Required fields
+A dataset manifest MUST contain at least the following fields:
+
+- `schema_version`
+- `dataset_id`
+- `name`
+- `version`
+- `created_at`
+- `status`
+- `release_root`
+- `corpora`
+- `calibration_profile`
+- `proxy_signals`
+- `integrity`
+
+## Dataset object
+
+```json
+{
+  "schema_version": "0.1.0",
+  "dataset_id": "string",
+  "name": "string",
+  "description": "string",
+  "version": "string",
+  "created_at": "date-time",
+  "updated_at": "date-time",
+  "status": "draft | released | deprecated | archived",
+  "release_root": "dataset/manifests/<version>/",
+  "corpora": [
+    {
+      "corpus_id": "string",
+      "corpus_version": "string",
+      "language": {
+        "bcp47": "string"
+      },
+      "manifest_path": "string",
+      "manifest_hash": "string",
+      "overall_rms_dbfs": -24.5,
+      "reference_offset_db": -1.5
+    }
+  ],
+  "calibration_profile": {
+    "profile_id": "string",
+    "method": "single_dataset_reference",
+    "target_metric": "overall_rms_dbfs",
+    "target_rms_dbfs": -23.0,
+    "reference_scope": "dataset",
+    "analysis_tolerance_db": 0.1,
+    "parameters": {}
+  },
+  "proxy_signals": [
+    {
+      "proxy_id": "white-noise-dataset-reference",
+      "kind": "white_noise",
+      "target_metric": "overall_rms_dbfs",
+      "rms_dbfs": -23.0,
+      "duration_s": 30.0,
+      "audio_path": "dataset/proxies/v1.0/proxy_white-noise-dataset-reference.wav",
+      "audio_hash": "string"
+    }
+  ],
+  "integrity": {
+    "manifest_hash_algorithm": "sha256",
+    "manifest_hash": "string",
+    "signature_algorithm": "string",
+    "public_key_id": "string"
+  },
+  "tags": ["string"],
+  "extensions": {}
+}
+```
+
+## Corpus references
+Each dataset manifest MUST reference at least one corpus manifest.
+
+Each corpus reference MUST include:
+
+- `corpus_id`
+- `corpus_version`
+- `language.bcp47`
+- `manifest_path`
+- `manifest_hash`
+
+`manifest_path` MUST be dataset-root-relative.
+
+`manifest_hash` MUST equal the referenced corpus manifest `integrity.manifest_hash`.
+
+Within a dataset manifest, the tuple `(corpus_id, corpus_version)` MUST be unique.
+
+Each referenced corpus manifest MUST remain independently valid as a monolingual Voxa corpus.
+
+If `overall_rms_dbfs` is present on a corpus reference, it MUST equal the referenced corpus manifest `corpus_statistics.overall_rms_dbfs`.
+
+If `reference_offset_db` is present on a corpus reference, it MUST equal `overall_rms_dbfs - calibration_profile.target_rms_dbfs`.
+
+## Calibration profile
+`calibration_profile` describes how the dataset-level reference signal is intended to be used.
+
+The calibration profile MUST be corpus-independent: it MUST NOT require a different reference signal or calibration procedure for each referenced corpus.
+
+For `method = single_dataset_reference`, the dataset manifest MUST contain at least one proxy signal with:
+
+- `kind = white_noise`
+- `target_metric = overall_rms_dbfs`
+
+For that white-noise proxy signal, `rms_dbfs` MUST equal `calibration_profile.target_rms_dbfs` within `calibration_profile.analysis_tolerance_db`.
+
+The `reference_scope` value MUST be `dataset`.
+
+The calibration profile defines a stable reference level. It MUST NOT be interpreted as requiring sample-level or corpus-level audio normalization.
+
+Dataset-level calibration does not imply normalization. Referenced corpora retain their published audio levels.
+
+Consumers SHOULD account for each corpus `reference_offset_db` when they need playback levels to be interpreted relative to the dataset reference.
+
+## Dataset proxy signals
+`proxy_signals` MUST describe the derived dataset-level proxy audio assets published with the dataset release.
+
+Each dataset proxy signal entry MUST include:
+
+- `proxy_id`
+- `kind`
+- `target_metric`
+- `rms_dbfs`
+- `duration_s`
+- `audio_path`
+- `audio_hash`
+
+`audio_path` MUST be dataset-root-relative.
+
+`audio_hash` MUST be the canonical integrity value for the published proxy audio asset.
+
+`proxy_id` MUST be unique within the dataset manifest.
+
+If `kind = white_noise`, the published proxy signal MUST be synthesized white noise.
+
+For reproducibility, implementations SHOULD synthesize dataset-level white-noise proxies using a fixed documented format and a fixed documented random seed so that identical dataset states reproduce identical proxy bytes.
+
+Dataset-level proxy signals are the RECOMMENDED calibration reference for multilingual Voxa publications.
+
+## Dataset identity rules
+Two dataset manifests represent the same logical dataset if and only if their canonical dataset identity views are equal.
+
+A dataset release is uniquely identified by the tuple `(dataset_id, version)`.
+
+`dataset_id` is a stable publisher-assigned identifier for a logical dataset.
+
+Within a dataset root, `dataset_id` MUST be unique across logical datasets.
+
+The canonical dataset identity view is formed from the dataset manifest after removing all fields listed below.
+
+The following dataset fields are dynamic, derived, or version-scoped and MUST NOT be used to determine dataset identity:
+
+- `dataset_id`
+- `version`
+- `created_at`
+- `updated_at`
+- `status`
+- `release_root`
+- `corpora`
+- `calibration_profile`
+- `proxy_signals`
+- `integrity`
+
+All remaining dataset metadata is identity-bearing.
+
+Changing only excluded fields creates a different dataset release or publication state, but not a different logical dataset.
+
+Within a dataset root, if two dataset manifests have the same canonical dataset identity view, they MUST use the same `dataset_id`.
+
+Within a dataset root, if two dataset manifests have different canonical dataset identity views, they MUST NOT use the same `dataset_id`.
+
+---
+
 # Corpus-level schema
 
 The corpus-level file is the canonical release manifest.
@@ -251,7 +456,6 @@ A corpus manifest MUST contain at least the following fields:
 - `licenses`
 - `language`
 - `release_root`
-- `proxy_signals`
 - `integrity`
 - `samples`
 
@@ -350,16 +554,16 @@ The tuple `(sample_id, sample_revision)` MUST always resolve to the same metadat
 If the same underlying utterance is published in multiple audio formats or encoding variants, each published format MUST be represented as a separate sample entry with its own distinct `sample_id`.
 
 ## Corpus statistics
-If `corpus_statistics` is present, it SHOULD use the metric definitions from section 8.
+If `corpus_statistics` is present, it SHOULD use the metric definitions from the metrics specification.
 
 If metrics are published, the corpus manifest SHOULD document the computation pipeline in `metric_pipeline`.
 
 Audio format is specified at the sample level, not the corpus level. A single corpus manifest MAY therefore reference samples with different containers or sampling parameters.
 
 ## Proxy signals
-`proxy_signals` MUST describe the derived corpus-level proxy audio assets published with the release.
+When present, `proxy_signals` MUST describe derived corpus-level proxy audio assets published with the release.
 
-Each corpus manifest MUST contain at least one proxy signal entry.
+Corpus-level proxy signals are optional. Dataset-level proxy signals SHOULD be used when multiple corpora are intended to share one calibration procedure.
 
 Each proxy signal entry MUST include:
 
@@ -379,14 +583,14 @@ Each proxy signal entry MUST include:
 
 If `kind = white_noise`, the published proxy signal MUST be synthesized white noise.
 
-Each corpus manifest MUST contain at least one proxy signal with:
+If a corpus manifest contains proxy signals intended for corpus-local calibration, it SHOULD contain at least one proxy signal with:
 
 - `kind = white_noise`
 - `target_metric = overall_rms_dbfs`
 
 For that white-noise proxy signal, `rms_dbfs` MUST equal the corpus `overall_rms_dbfs` value within the documented analysis tolerance.
 
-For reproducibility, implementations SHOULD synthesize the required white-noise proxy using a fixed documented format and a fixed documented random seed so that identical corpus states reproduce identical proxy bytes.
+For reproducibility, implementations SHOULD synthesize corpus-level white-noise proxies using a fixed documented format and a fixed documented random seed so that identical corpus states reproduce identical proxy bytes.
 
 ## Corpus identity rules
 Two corpus manifests represent the same logical corpus if and only if their canonical corpus identity views are equal.
@@ -906,15 +1110,19 @@ Recommended external-reference structure:
 ```
 
 ### White-noise proxy signal
-A corpus MUST publish a white-noise proxy signal as a derived audio asset.
+A multilingual dataset MUST publish a white-noise proxy signal as a dataset-level derived audio asset.
 
-This proxy signal is intended to provide a simple playback or level-reference signal representative of the corpus energy.
+This proxy signal is intended to provide a simple playback or level-reference signal that can be used once for all corpora referenced by the dataset manifest.
 
-The proxy signal MUST be synthesized white noise whose `rms_dbfs` matches the corpus `overall_rms_dbfs`.
+The dataset-level proxy signal MUST be synthesized white noise whose `rms_dbfs` matches `calibration_profile.target_rms_dbfs`.
 
-The manifest MUST publish the proxy signal in `proxy_signals` with its target metric, duration, path, and hash.
+The dataset manifest MUST publish the proxy signal in `proxy_signals` with its target metric, duration, path, and hash.
 
-For reproducibility, the proxy synthesis process SHOULD use a fixed documented audio format and a fixed documented random seed. If those inputs are unchanged and the referenced corpus state is unchanged, implementations SHOULD reproduce identical proxy bytes.
+A monolingual corpus MAY publish a corpus-level white-noise proxy as a convenience artifact. If present, the corpus-level proxy signal SHOULD match the corpus `overall_rms_dbfs`; it MUST NOT replace the dataset-level proxy signal required by a multilingual dataset release.
+
+Dataset-level calibration does not imply dataset-level audio normalization. Each corpus retains its published audio level and consumers SHOULD use the corpus `reference_offset_db` to interpret that corpus relative to the shared dataset reference.
+
+For reproducibility, the proxy synthesis process SHOULD use a fixed documented audio format and a fixed documented random seed. If those inputs are unchanged and the referenced dataset or corpus state is unchanged, implementations SHOULD reproduce identical proxy bytes.
 
 ## Corpus aggregation rules
 For corpus-level summaries:
@@ -994,7 +1202,8 @@ A conforming validator SHOULD check:
 - existence of referenced paths
 - consistency between corpus and sample references
 - exact equality between the corpus `language.bcp47` value and every referenced sample metadata `language.bcp47` value
-- presence and integrity of referenced proxy signal assets
+- consistency between dataset corpus references and referenced corpus manifests
+- presence and integrity of referenced dataset-level proxy signal assets when a dataset manifest is present
 - hash validity
 - signature validity for released manifests
 - language code syntax
@@ -1005,17 +1214,22 @@ A conforming validator SHOULD check:
 A release MUST be rejected if:
 
 - two entries share the same `sample_id`
-- `proxy_signals` is missing or empty
-- no proxy signal entry has `kind = white_noise` and `target_metric = overall_rms_dbfs`
-- the required white-noise proxy signal `rms_dbfs` does not match `overall_rms_dbfs` within the documented analysis tolerance
+- a multilingual dataset is published without a dataset manifest
+- a dataset manifest `proxy_signals` value is missing or empty
+- no dataset proxy signal entry has `kind = white_noise` and `target_metric = overall_rms_dbfs`
+- the required dataset white-noise proxy signal `rms_dbfs` does not match `calibration_profile.target_rms_dbfs` within `calibration_profile.analysis_tolerance_db`
+- a dataset corpus reference `manifest_hash` does not match the referenced corpus manifest
+- a dataset corpus reference `overall_rms_dbfs` differs from the referenced corpus manifest `corpus_statistics.overall_rms_dbfs`
+- a dataset corpus reference `reference_offset_db` differs from `overall_rms_dbfs - calibration_profile.target_rms_dbfs`
 - a referenced audio file is missing
-- a referenced proxy signal audio file is missing
+- a referenced dataset proxy signal audio file is missing
 - a manifest `audio_hash` does not match the referenced binary file
 - a manifest `metadata_hash` does not match the referenced metadata file
-- a proxy signal `audio_hash` does not match the referenced binary file
+- a dataset proxy signal `audio_hash` does not match the referenced binary file
 - the same `(sample_id, sample_revision)` is observed with different `audio_hash` values
 - the same `(sample_id, sample_revision)` is observed with different `metadata_hash` values
 - within the validator's dataset-root scope, the same `corpus_id` is observed for different canonical corpus identity views
+- within the validator's dataset-root scope, the same `dataset_id` is observed for different canonical dataset identity views
 - within the validator's dataset-root scope, the same `(corpus_id, sample_id)` is observed for different canonical sample identity views
 - `language.bcp47` is missing
 - a referenced sample metadata `language.bcp47` value differs from the corpus manifest `language.bcp47` value
@@ -1036,17 +1250,25 @@ A minimal conforming released Voxa corpus MUST include:
 - one audio file per referenced sample entry
 - manifest-level `metadata_hash` values for each sample entry
 - manifest-level `audio_hash` values for each sample entry
-- at least one manifest-level proxy signal entry
-- one proxy audio file per manifest proxy signal entry
 - corpus-level manifest hash
 - `bcp47` language field
 - sample-level `rms_dbfs`
 - sample-level `integrated_lufs`
 - sample-level `peak_dbfs`
 - corpus-level `overall_rms_dbfs`
-- one white-noise proxy signal matched to `overall_rms_dbfs`
 
 A draft manifest MAY omit `manifest.sig`.
+
+A minimal conforming released multilingual Voxa dataset MUST additionally include:
+
+- one dataset manifest
+- one detached dataset manifest signature
+- at least two corpus references
+- dataset-level manifest hash
+- one dataset-level calibration profile with `reference_scope = dataset`
+- at least one dataset-level proxy signal entry
+- one dataset-level proxy audio file per dataset proxy signal entry
+- one white-noise proxy signal matched to `calibration_profile.target_rms_dbfs`
 
 For TTS-generated content, a minimal conforming release MUST additionally include:
 
