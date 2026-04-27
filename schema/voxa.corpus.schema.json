@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.org/voxa/voxa.corpus.schema.json",
   "title": "Voxa Corpus Manifest",
-  "description": "Schema for the Voxa corpus-level manifest file voxa.corpus.json. Cross-file validation must additionally ensure that every referenced sample metadata record uses the same exact language.bcp47 value as the corpus manifest.",
+  "description": "Schema for the Voxa corpus-level manifest file voxa.corpus.json. Cross-file validation must additionally ensure that every referenced sample metadata record uses the same exact language.bcp47 value as the corpus manifest. Corpus-level proxy signals are optional; multilingual dataset calibration proxies are described by voxa.dataset.json.",
   "type": "object",
   "additionalProperties": true,
   "required": [
@@ -15,7 +15,6 @@
     "licenses",
     "language",
     "release_root",
-    "proxy_signals",
     "integrity",
     "samples"
   ],
